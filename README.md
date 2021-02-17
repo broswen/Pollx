@@ -1,4 +1,5 @@
 ![Pollx](images/Pollx.svg)
+
 Serverless poll backend for multiple choice and multiple answer questions.
 
 Single table NoSQL design in DynamoDB
