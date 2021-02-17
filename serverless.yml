@@ -10,8 +10,14 @@ provider:
   runtime: nodejs12.x
   lambdaHashingVersion: 20201221
 
+  timeout: 3
+  memorySize: 128
+
   stage: dev
   region: us-east-1
+
+  iamManagedPolicies:
+    - arn:aws:iam::aws:policy/service-role/AWSLambdaDynamoDBExecutionRole
 
   iamRoleStatements:
     - Effect: "Allow"
@@ -20,6 +26,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:Query
+        - dynamodb:BatchWriteItem
       Resource:
         - !GetAtt PollTable.Arn
 
@@ -39,30 +46,21 @@ functions:
               paths:
                 id: true
 
-# get all polls for a user
-  GetUserPolls:
-    handler: src/lambdas/GetUserPolls.handler
+# get a poll and values by id
+  GetPollResults:
+    handler: src/lambdas/GetPollResults.handler
     events:
       - httpApi:
-          path: /user/{id}
+          path: /results/{id}
           method: get
           request:
             parameters:
               paths:
                 id: true
 
-# get a poll submission for an IP
-  GetSubmission:
-    handler: src/lambdas/GetSubmission.handler
-    events:
-      - httpApi:
-          path: /poll/{id}/{ip}
-          method: get
-          request:
-            parameters:
-              paths:
-                id: true
-                ip: true
+# watch table changes for submission, update choice values
+  IngestSubmission:
+    handler: src/lambdas/IngestSubmission.handler
 
 # send json poll item to create poll
   CreatePoll:
@@ -91,6 +89,8 @@ resources:
       Properties:
         TableName: ${self:service}-${self:provider.stage}-PollTable
         BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
         AttributeDefinitions:
           - AttributeName: PK
             AttributeType: S
@@ -114,13 +114,11 @@ resources:
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
-          - IndexName: SubmissionIndex
-            KeySchema:
-              - AttributeName: PK
-                KeyType: HASH
-              - AttributeName: IP
-                KeyType: RANGE
-            Projection:
-                ProjectionType: KEYS_ONLY
 
-                
+    TableEventSourceMapping:
+      Type: AWS::Lambda::EventSourceMapping
+      Properties:
+        StartingPosition: LATEST
+        EventSourceArn: !GetAtt PollTable.StreamArn
+        FunctionName: !GetAtt IngestSubmissionLambdaFunction.Arn
+        MaximumRetryAttempts: 1

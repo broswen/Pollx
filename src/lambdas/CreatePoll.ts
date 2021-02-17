@@ -3,7 +3,8 @@
 
 const KSUID = require('ksuid')
 
-import { DynamoDBClient, PutItemCommand, PutItemCommandInput } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { insertPoll, insertPollChoices } from './utils';
 
 const ddbClient = new DynamoDBClient({});
 
@@ -32,45 +33,25 @@ const inputSchema: Object = {
 const createPoll = async (event) => {
   const id = await KSUID.random();
 
-  const response = await insertPoll(id, event.body.question, event.body.choices, event.body.type);
+  const response = await insertPoll(id.string, event.body.question, event.body.choices, event.body.type);
+
+  const response2 = await insertPollChoices(id.string, event.body.choices)
 
   return {
     statusCode: 200,
     body: JSON.stringify(
-      response
+      {
+        id: id.string,
+        question: event.body.question,
+        choices: event.body.choices,
+        type: event.body.type,
+        enabled: true
+      }
     ),
   };
 };
 
-const insertPoll = async (id: string, question: string, choices: string[], type: 'SINGLE' | 'MULTIPLE') {
-  const params: PutItemCommandInput = {
-    TableName: process.env.POLLS,
-    Item: {
-      PK: {
-        S: `P#${id}`
-      },
-      SK: {
-        S: `P#${id}`
-      },
-      question: {
-        S: question
-      },
-      choices: {
-        SS: choices
-      },
-      enabled: {
-        BOOL: true
-      }
-    }
-  }
 
-  try {
-    return await ddbClient.send(new PutItemCommand(params));
-  } catch (error) {
-    console.error(error);
-    throw createError(500, error);
-  }
-}
 
 
 const handler = middy(createPoll)

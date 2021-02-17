@@ -1,1 +1,0 @@
-{"version":3,"file":"GetSubmission.js","sourceRoot":"","sources":["../../../src/lambdas/GetSubmission.ts"],"names":[],"mappings":"AAAA,YAAY,CAAC;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAEb,MAAM,CAAC,OAAO,CAAC,OAAO,GAAG,UAAO,KAAK;;QACnC,sBAAO;gBACL,UAAU,EAAE,GAAG;gBACf,IAAI,EAAE,IAAI,CAAC,SAAS,CAClB;oBACE,OAAO,EAAE,0DAA0D;oBACnE,KAAK,EAAE,KAAK;iBACb,CACF;aACF,EAAC;;KACH,CAAC"}

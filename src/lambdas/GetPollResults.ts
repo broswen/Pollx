@@ -1,7 +1,7 @@
 'use strict';
 
-import { GetItemCommandOutput } from '@aws-sdk/client-dynamodb';
-import { getItemById } from './utils';
+import { GetItemCommandOutput, QueryCommandOutput } from '@aws-sdk/client-dynamodb';
+import { getItemById, getPollResultsById } from './utils';
 
 const middy = require('@middy/core');
 const createError = require('http-errors');
@@ -24,7 +24,7 @@ const inputSchema: Object = {
 }
 
 
-const getPoll = async (event) => {
+const getPollResults = async (event) => {
 
   const data: GetItemCommandOutput = await getItemById(event.pathParameters.id);
 
@@ -32,13 +32,22 @@ const getPoll = async (event) => {
     throw createError(404);
   }
 
+  const results: QueryCommandOutput = await getPollResultsById(event.pathParameters.id);
+
+  const choices: { choice: string, value: number }[] = results.Items.map(item => {
+    return {
+      choice: item.SK.S.split('#')[1],
+      value: parseInt(item.value.N)
+    }
+  });
+
   return {
     statusCode: 200,
     body: JSON.stringify(
       {
         id: data.Item.PK.S.split('#')[1],
         question: data.Item.question.S,
-        choices: data.Item.choices.SS,
+        choices,
         type: data.Item.type.S,
         enabled: data.Item.enabled.BOOL
       }
@@ -47,8 +56,7 @@ const getPoll = async (event) => {
 };
 
 
-
-const handler = middy(getPoll)
+const handler = middy(getPollResults)
   .use(jsonBodyParser())
   .use(validator({ inputSchema }))
   .use(httpErrorHandler());
