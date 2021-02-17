@@ -1,0 +1,120 @@
+service: pollx
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+
+  stage: dev
+  region: us-east-1
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:Query
+      Resource:
+        - !GetAtt PollTable.Arn
+
+  environment:
+    POLLS: !Ref PollTable
+
+functions:
+# get a poll by id
+  GetPoll:
+    handler: src/lambdas/GetPoll.handler
+    events:
+      - httpApi:
+          path: /poll/{id}
+          method: get
+          request:
+            parameters:
+              paths:
+                id: true
+
+# get all polls for a user
+  GetUserPolls:
+    handler: src/lambdas/GetUserPolls.handler
+    events:
+      - httpApi:
+          path: /user/{id}
+          method: get
+          request:
+            parameters:
+              paths:
+                id: true
+
+# get a poll submission for an IP
+  GetSubmission:
+    handler: src/lambdas/GetSubmission.handler
+    events:
+      - httpApi:
+          path: /poll/{id}/{ip}
+          method: get
+          request:
+            parameters:
+              paths:
+                id: true
+                ip: true
+
+# send json poll item to create poll
+  CreatePoll:
+    handler: src/lambdas/CreatePoll.handler
+    events:
+      - httpApi:
+          path: /poll
+          method: post
+
+# send json submission item to vote
+  Submit:
+    handler: src/lambdas/Submit.handler
+    events:
+      - httpApi:
+          path: /poll/{id}
+          method: post
+          request:
+            parameters:
+              paths:
+                id: true
+
+resources:
+  Resources:
+    PollTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-PollTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: PK2
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: UserIndex
+            KeySchema:
+              - AttributeName: PK2
+                KeyType: HASH
+              - AttributeName: PK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: SubmissionIndex
+            KeySchema:
+              - AttributeName: PK
+                KeyType: HASH
+              - AttributeName: IP
+                KeyType: RANGE
+            Projection:
+                ProjectionType: KEYS_ONLY
+
+                
