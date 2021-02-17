@@ -1,6 +1,10 @@
 service: pollx
 frameworkVersion: '2'
 
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline
+
 provider:
   name: aws
   runtime: nodejs12.x
@@ -93,6 +97,8 @@ resources:
           - AttributeName: SK
             AttributeType: S
           - AttributeName: PK2
+            AttributeType: S
+          - AttributeName: IP
             AttributeType: S
         KeySchema:
           - AttributeName: PK
