@@ -13,6 +13,9 @@ provider:
   timeout: 3
   memorySize: 128
 
+  httpApi:
+    cors: true
+
   stage: dev
   region: us-east-1
 
