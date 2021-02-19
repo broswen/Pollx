@@ -101,8 +101,6 @@ resources:
             AttributeType: S
           - AttributeName: PK2
             AttributeType: S
-          - AttributeName: IP
-            AttributeType: S
         KeySchema:
           - AttributeName: PK
             KeyType: HASH
